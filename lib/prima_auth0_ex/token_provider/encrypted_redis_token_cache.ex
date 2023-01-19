@@ -23,7 +23,7 @@ defmodule PrimaAuth0Ex.TokenProvider.EncryptedRedisTokenCache do
   defp do_get_token_for(audience) do
     key = key_for(audience)
 
-    case Redix.command(PrimaAuth0Ex.Redix, ["GET", key]) do
+    case redis_client().get(key) do
       {:ok, nil} ->
         Logger.info("Token not found on redis.", audience: audience, key: key)
         {:ok, nil}
@@ -55,7 +55,7 @@ defmodule PrimaAuth0Ex.TokenProvider.EncryptedRedisTokenCache do
   defp save(token, audience, expires_at) do
     expires_in = expires_at - current_time()
 
-    Redix.command(PrimaAuth0Ex.Redix, ["SET", audience, token, "EX", expires_in])
+    redis_client().set(audience, token, expires_in)
   end
 
   defp decrypt_and_parse(cached_value) do
@@ -77,7 +77,11 @@ defmodule PrimaAuth0Ex.TokenProvider.EncryptedRedisTokenCache do
 
   defp build_token(_), do: {:error, :malformed_cached_data}
 
-  defp enabled?, do: :prima_auth0_ex |> Application.get_env(:client, []) |> Keyword.get(:cache_enabled, true)
+  defp enabled?, do: Application.get_env(:prima_auth0_ex, :client, []) |> Keyword.get(:cache_enabled, true)
   defp namespace, do: Application.fetch_env!(:prima_auth0_ex, :client)[:cache_namespace]
+
+  defp redis_client,
+    do: Application.get_env(:prima_auth0_ex, :client, []) |> Keyword.get(:cache_client, PrimaAuth0Ex.Redis.RedixCache)
+
   defp current_time, do: Timex.to_unix(Timex.now())
 end
