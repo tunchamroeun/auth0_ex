@@ -1,19 +1,14 @@
 defmodule Integration.TokenProvider.EncryptedRedisTokenCacheTest do
   use ExUnit.Case, async: true
 
+  import Hammox
   import ExUnit.CaptureLog
   import PrimaAuth0Ex.TestSupport.TimeUtils
   alias PrimaAuth0Ex.TokenProvider.{EncryptedRedisTokenCache, TokenInfo}
 
   @test_audience "redis-integration-test-audience"
-
-  setup do
-    redis_connection_uri = Application.fetch_env!(:prima_auth0_ex, :client)[:redis_connection_uri]
-    Redix.start_link(redis_connection_uri, name: PrimaAuth0Ex.Redix)
-    Redix.command!(PrimaAuth0Ex.Redix, ["DEL", token_key(@test_audience)])
-
-    :ok
-  end
+  @test_cache_namespace Application.get_env(:prima_auth0_ex, :client, []) |> Keyword.get(:cache_namespace)
+  @test_cache_key "prima_auth0_ex_tokens:#{@test_cache_namespace}:#{@test_audience}"
 
   describe "logs on token encryption failure while setting token" do
     test "malformed token" do
@@ -46,6 +41,15 @@ defmodule Integration.TokenProvider.EncryptedRedisTokenCacheTest do
 
   test "persists and retrieves tokens" do
     token = sample_token()
+
+    expect(RedisClientMock, :set, fn @test_cache_key, _, _ ->
+      {:ok, "ok"}
+    end)
+
+    expect(RedisClientMock, :get, fn @test_cache_key ->
+      {:ok, token}
+    end)
+
     :ok = EncryptedRedisTokenCache.set_token_for(@test_audience, token)
 
     assert {:ok, token} == EncryptedRedisTokenCache.get_token_for(@test_audience)
@@ -55,6 +59,17 @@ defmodule Integration.TokenProvider.EncryptedRedisTokenCacheTest do
     issued_at = one_hour_ago()
     expires_at = in_one_hour()
     token_without_kid = %{jwt: "my-token", issued_at: issued_at, expires_at: expires_at}
+
+    encoded_token = Jason.encode!(token_without_kid)
+
+    expect(RedisClientMock, :set, fn @test_audience, encoded_token, expires_at ->
+      {:ok, "ok"}
+    end)
+
+    expect(RedisClientMock, :get, fn @test_audience ->
+      {:ok, token_without_kid}
+    end)
+
     :ok = EncryptedRedisTokenCache.set_token_for(@test_audience, token_without_kid)
 
     assert {:ok, %TokenInfo{jwt: "my-token", issued_at: ^issued_at, expires_at: ^expires_at, kid: nil}} =

@@ -9,6 +9,7 @@ config :prima_auth0_ex,
 
 config :prima_auth0_ex, :client,
   cache_enabled: true,
+  cache_client: RedisClientMock,
   token_check_interval: :timer.seconds(1),
   signature_check_interval: :timer.seconds(1)
 

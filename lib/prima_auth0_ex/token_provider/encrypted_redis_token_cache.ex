@@ -81,7 +81,7 @@ defmodule PrimaAuth0Ex.TokenProvider.EncryptedRedisTokenCache do
   defp namespace, do: Application.fetch_env!(:prima_auth0_ex, :client)[:cache_namespace]
 
   defp redis_client,
-    do: Application.get_env(:prima_auth0_ex, :client, []) |> Keyword.get(:cache_client, PrimaAuth0Ex.Redis.RedixCache)
+    do: Application.get_env(:prima_auth0_ex, :client, []) |> Keyword.get(:cache_client, PrimaAuth0Ex.Redis.RedixClient)
 
   defp current_time, do: Timex.to_unix(Timex.now())
 end

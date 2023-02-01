@@ -1,5 +1,5 @@
-defmodule PrimaAuth0Ex.Redis.RedixCache do
-  @behaviour PrimaAuth0Ex.Redis.Cache
+defmodule PrimaAuth0Ex.Redis.RedixClient do
+  @behaviour PrimaAuth0Ex.Redis.Client
 
   @impl true
   def get(key), do: Redix.command(PrimaAuth0Ex.Redix, ["GET", key])
