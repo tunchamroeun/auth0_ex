@@ -53,11 +53,7 @@ defmodule PrimaAuth0Ex.Application do
   def redis_ssl_opts do
     if redis_ssl_enabled?() do
       append_if([ssl: true], redis_ssl_allow_wildcard_certificates?(),
-        socket_opts: [
-          customize_hostname_check: [
-            match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
-          ]
-        ]
+        socket_opts: redis_ssl_socket_opts?()
       )
     else
       []
@@ -65,6 +61,8 @@ defmodule PrimaAuth0Ex.Application do
   end
 
   defp redis_ssl_enabled?, do: get_redis_option(:redis_ssl_enabled)
+
+  defp redis_ssl_socket_opts?, do: get_redis_option(:redis_ssl_socket_opts)
 
   defp redis_ssl_allow_wildcard_certificates?, do: get_redis_option(:redis_ssl_allow_wildcard_certificates)
 
